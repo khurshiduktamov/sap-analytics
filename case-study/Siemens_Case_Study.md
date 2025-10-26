@@ -60,7 +60,7 @@ To deliver a high-impact, correct, and scalable solution, I would begin by clari
 
 ## 🧱 ER Diagram (SAP Data Relationships)
 
-erDiagram
+```erDiagram
     %% Master Tables
     T001W {
         string WERKS "Plant ID"
@@ -109,7 +109,7 @@ erDiagram
     MARA ||--o{ LIPS : "1 material → many delivery items"
     LIKP ||--|{ LIPS : "1 delivery header → many items"
     T001W ||--o{ MARC : "1 plant → many materials"
-
+```
 
 ### 💡 Future Enhancements
 
