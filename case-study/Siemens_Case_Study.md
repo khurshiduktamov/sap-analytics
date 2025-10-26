@@ -123,10 +123,8 @@ erDiagram
     T001W ||--o{ MARC : "1 plant → many materials"
 ```
 
-### ✅ Notes:
-- This includes **all relevant tables** for the “stock per plant & delivery per day” problem.  
-- Columns shown are **only the ones used in your analysis**.  
-- You can paste this directly in your GitHub Markdown (`.md`) and it will render as a clean ER diagram.  
+### ✅ Note:
+- This includes **all relevant tables and columns** for this specific problem.  
 
 
 ### 3️⃣ Transformation — Filter, Join & Aggregate
@@ -166,7 +164,53 @@ erDiagram
 **Tools / Techniques:**  
 - Snowflake, Synapse, or Azure Data Lake for storage  
 - Power BI or Tableau data modeling for KPIs  
-- Star schema design for fast aggregation  
+- Star schema design for fast aggregation
+
+We’ll separate dimension tables (master/reference) and fact tables (measurable events) for your stock & delivery analysis.
+
+Dimension Tables
+Dim Table	Description	Key Columns
+Dim_Material	Material master info	MATNR (PK), MTART, NTGEW
+Dim_Plant	Plant master info	WERKS (PK), NAME1, LAND1
+Dim_Storage	Storage location info	LGORT (PK), WERKS, Description
+Fact Table
+Fact Table	Description	Measures / Columns
+Fact_Stock_Delivery	Daily stock and delivery per material & storage	MATNR (FK), WERKS (FK), LGORT (FK), Delivery_Date, Unrestricted_Stock, Deliveries
+
+```mermaid
+erDiagram
+    %% Dimension Tables
+    Dim_Material {
+        string MATNR "PK - Material Number"
+        string MTART "Material Type"
+        decimal NTGEW "Net Weight"
+    }
+    Dim_Plant {
+        string WERKS "PK - Plant ID"
+        string NAME1 "Plant Name"
+        string LAND1 "Country"
+    }
+    Dim_Storage {
+        string LGORT "PK - Storage Location"
+        string WERKS "Plant ID"
+        string Description "Storage Location Description"
+    }
+
+    %% Fact Table
+    Fact_Stock_Delivery {
+        string MATNR "FK → Dim_Material"
+        string WERKS "FK → Dim_Plant"
+        string LGORT "FK → Dim_Storage"
+        date Delivery_Date
+        decimal Unrestricted_Stock
+        int Deliveries
+    }
+
+    %% Relationships
+    Fact_Stock_Delivery }|--|| Dim_Material : "Material"
+    Fact_Stock_Delivery }|--|| Dim_Plant : "Plant"
+    Fact_Stock_Delivery }|--|| Dim_Storage : "Storage Location"
+```
 
 ---
 
@@ -187,6 +231,59 @@ erDiagram
 - Data profiling scripts (Python/Pandas)  
 
 ---
+
+
+---
+
+## Written SQL Based on Fact/Dimension Schema
+
+```sql
+-- Step 1: Filter materials > 100 kg
+WITH heavy_materials AS (
+    SELECT MATNR, MTART, NTGEW
+    FROM Dim_Material
+    WHERE NTGEW > 100
+),
+
+-- Step 2: Aggregate stock per plant & storage
+stock_per_location AS (
+    SELECT
+        m.WERKS,
+        s.LGORT,
+        m.MATNR,
+        SUM(f.Unrestricted_Stock) AS Total_Stock
+    FROM Fact_Stock_Delivery f
+    INNER JOIN heavy_materials m ON f.MATNR = m.MATNR
+    INNER JOIN Dim_Storage s ON f.LGORT = s.LGORT
+    GROUP BY m.WERKS, s.LGORT, m.MATNR
+),
+
+-- Step 3: Aggregate deliveries per day
+deliveries_per_day AS (
+    SELECT
+        f.WERKS,
+        f.MATNR,
+        f.Delivery_Date,
+        SUM(f.Deliveries) AS Deliveries_Per_Day
+    FROM Fact_Stock_Delivery f
+    INNER JOIN heavy_materials m ON f.MATNR = m.MATNR
+    GROUP BY f.WERKS, f.MATNR, f.Delivery_Date
+)
+
+-- Step 4: Final Result
+SELECT
+    s.WERKS AS Plant,
+    s.LGORT AS Storage_Location,
+    SUM(s.Total_Stock) AS Total_Unrestricted_Stock,
+    d.Delivery_Date,
+    SUM(d.Deliveries_Per_Day) AS Deliveries
+FROM stock_per_location s
+LEFT JOIN deliveries_per_day d
+    ON s.WERKS = d.WERKS
+    AND s.MATNR = d.MATNR
+GROUP BY s.WERKS, s.LGORT, d.Delivery_Date
+ORDER BY s.WERKS, s.LGORT, d.Delivery_Date;
+```
 
 ### 6️⃣ Visualization — Interactive Dashboards
 
