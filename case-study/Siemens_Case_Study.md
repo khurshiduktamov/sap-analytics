@@ -155,27 +155,13 @@ erDiagram
 **Actions:**
 - **Fact Table:** `Stock_Deliveries_Fact`  
   - Measures: `Unrestricted Stock`, `Deliveries Count`  
-  - Keys: `Plant`, `Storage Location`, `Material`, `Delivery Date`  
+  - Keys: `Plant`, `Storage Location`, `Material`, `Delivery Date`
+
 - **Dimension Tables:**  
   - `Dim_Material` (Material metadata: Type, Weight, Category)  
   - `Dim_Plant` (Plant name, location, country)  
   - `Dim_Storage` (Storage location metadata)  
 
-**Tools / Techniques:**  
-- Snowflake, Synapse, or Azure Data Lake for storage  
-- Power BI or Tableau data modeling for KPIs  
-- Star schema design for fast aggregation
-
-We’ll separate dimension tables (master/reference) and fact tables (measurable events) for your stock & delivery analysis.
-
-Dimension Tables
-Dim Table	Description	Key Columns
-Dim_Material	Material master info	MATNR (PK), MTART, NTGEW
-Dim_Plant	Plant master info	WERKS (PK), NAME1, LAND1
-Dim_Storage	Storage location info	LGORT (PK), WERKS, Description
-Fact Table
-Fact Table	Description	Measures / Columns
-Fact_Stock_Delivery	Daily stock and delivery per material & storage	MATNR (FK), WERKS (FK), LGORT (FK), Delivery_Date, Unrestricted_Stock, Deliveries
 
 ```mermaid
 erDiagram
