@@ -60,35 +60,56 @@ To deliver a high-impact, correct, and scalable solution, I would begin by clari
 
 ## 🧱 ER Diagram (SAP Data Relationships)
 
-```mermaid
 erDiagram
-    MARA ||--o{ MARC : "Material per Plant"
-    MARC ||--o{ MARD : "Stock per Storage Location"
-    MARA ||--o{ LIPS : "Delivered Material"
-    LIKP ||--|{ LIPS : "Delivery Header-Items"
-    T001W ||--o{ MARC : "Plant Master"
-
+    %% Master Tables
+    T001W {
+        string WERKS "Plant ID"
+        string NAME1 "Plant Name"
+        string LAND1 "Country"
+    }
     MARA {
         string MATNR "Material Number"
         decimal NTGEW "Net Weight"
+        string MTART "Material Type"
     }
+
+    %% Plant-specific Master
+    MARC {
+        string MATNR
+        string WERKS
+        string BESKZ "Procurement Type"
+    }
+
+    %% Stock Table
     MARD {
         string MATNR
         string WERKS
-        string LGORT
+        string LGORT "Storage Location"
         decimal LABST "Unrestricted Stock"
+        decimal INSME "Stock in Quality Inspection"
     }
+
+    %% Delivery Tables
     LIKP {
-        string VBELN
-        string WADAT_IST "Delivery Date"
-        string WERKS
+        string VBELN "Delivery Doc"
+        string WADAT_IST "Actual Delivery Date"
+        string WERKS "Plant"
     }
+
     LIPS {
         string VBELN
         string MATNR
-        decimal LFIMG "Delivered Qty"
+        decimal LFIMG "Delivered Quantity"
+        string WERKS "Plant"
     }
-```
+
+    %% Relationships
+    MARA ||--o{ MARC : "1 material → many plant entries"
+    MARC ||--o{ MARD : "1 plant-material → many storage locations"
+    MARA ||--o{ LIPS : "1 material → many delivery items"
+    LIKP ||--|{ LIPS : "1 delivery header → many items"
+    T001W ||--o{ MARC : "1 plant → many materials"
+
 
 ### 💡 Future Enhancements
 
