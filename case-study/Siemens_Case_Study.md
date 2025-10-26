@@ -30,7 +30,7 @@ Planning teams want to analyze:
 
 ---
 
-## 🎯 Business Understanding & Stakeholder Questions
+## 🎯 1. Business Understanding & Stakeholder Questions
 
 To deliver a high-impact, correct, and scalable solution, I would begin by clarifying:
 
@@ -58,58 +58,156 @@ To deliver a high-impact, correct, and scalable solution, I would begin by clari
 
 ---
 
-## 🧱 ER Diagram (SAP Data Relationships)
+## 🧱 2. ER Diagram (SAP Data Relationships) and Extraction
 
-```erDiagram
+```mermaid
+erDiagram
+    %% ---------------------------
     %% Master Tables
+    %% ---------------------------
     T001W {
         string WERKS "Plant ID"
         string NAME1 "Plant Name"
         string LAND1 "Country"
     }
+    
     MARA {
         string MATNR "Material Number"
         decimal NTGEW "Net Weight"
         string MTART "Material Type"
     }
 
-    %% Plant-specific Master
+    %% ---------------------------
+    %% Plant-specific Material Master
+    %% ---------------------------
     MARC {
-        string MATNR
-        string WERKS
+        string MATNR "Material Number"
+        string WERKS "Plant ID"
         string BESKZ "Procurement Type"
     }
 
+    %% ---------------------------
     %% Stock Table
+    %% ---------------------------
     MARD {
-        string MATNR
-        string WERKS
+        string MATNR "Material Number"
+        string WERKS "Plant ID"
         string LGORT "Storage Location"
         decimal LABST "Unrestricted Stock"
         decimal INSME "Stock in Quality Inspection"
     }
 
+    %% ---------------------------
     %% Delivery Tables
+    %% ---------------------------
     LIKP {
-        string VBELN "Delivery Doc"
+        string VBELN "Delivery Document"
         string WADAT_IST "Actual Delivery Date"
-        string WERKS "Plant"
+        string WERKS "Plant ID"
     }
 
     LIPS {
-        string VBELN
-        string MATNR
+        string VBELN "Delivery Document"
+        string MATNR "Material Number"
         decimal LFIMG "Delivered Quantity"
-        string WERKS "Plant"
+        string WERKS "Plant ID"
     }
 
+    %% ---------------------------
     %% Relationships
+    %% ---------------------------
     MARA ||--o{ MARC : "1 material → many plant entries"
     MARC ||--o{ MARD : "1 plant-material → many storage locations"
     MARA ||--o{ LIPS : "1 material → many delivery items"
     LIKP ||--|{ LIPS : "1 delivery header → many items"
     T001W ||--o{ MARC : "1 plant → many materials"
 ```
+
+### ✅ Notes:
+- This includes **all relevant tables** for the “stock per plant & delivery per day” problem.  
+- Columns shown are **only the ones used in your analysis**.  
+- You can paste this directly in your GitHub Markdown (`.md`) and it will render as a clean ER diagram.  
+
+
+### 3️⃣ Transformation — Filter, Join & Aggregate
+
+**Goal:** Convert raw SAP tables into meaningful datasets for analysis.  
+
+**Actions:**
+- Filter MARA for `NTGEW > 100` kg  
+- Join with MARC & MARD to get stock per plant & storage location  
+- Join with LIPS + LIKP to count deliveries per day  
+- Aggregate by:
+  - `Plant (WERKS)`  
+  - `Storage Location (LGORT)`  
+  - `Material (MATNR)`  
+  - `Delivery Date (WADAT_IST)`  
+
+**Tools / Techniques:**  
+- SQL (HANA, T-SQL, or SAP BW queries)  
+- PySpark for distributed processing on large datasets  
+- dbt for modular and version-controlled transformation pipelines  
+
+---
+
+### 4️⃣ Data Modeling — Fact & Dimension Structure
+
+**Goal:** Create analytics-friendly schema for dashboards and KPIs.  
+
+**Actions:**
+- **Fact Table:** `Stock_Deliveries_Fact`  
+  - Measures: `Unrestricted Stock`, `Deliveries Count`  
+  - Keys: `Plant`, `Storage Location`, `Material`, `Delivery Date`  
+- **Dimension Tables:**  
+  - `Dim_Material` (Material metadata: Type, Weight, Category)  
+  - `Dim_Plant` (Plant name, location, country)  
+  - `Dim_Storage` (Storage location metadata)  
+
+**Tools / Techniques:**  
+- Snowflake, Synapse, or Azure Data Lake for storage  
+- Power BI or Tableau data modeling for KPIs  
+- Star schema design for fast aggregation  
+
+---
+
+### 5️⃣ Validation — Cross-check Totals
+
+**Goal:** Ensure data correctness and accuracy before reporting.  
+
+**Actions:**
+- Compare totals of `Unrestricted Stock` and `Deliveries` to SAP standard reports (`MB52`, `VL06O`)  
+- Check edge cases:
+  - Materials with zero stock  
+  - Multiple deliveries on same day  
+- Validate ETL transformations (row counts, join correctness)  
+
+**Tools / Techniques:**  
+- Excel pivot tables for rapid comparison  
+- SQL queries for automated data validation  
+- Data profiling scripts (Python/Pandas)  
+
+---
+
+### 6️⃣ Visualization — Interactive Dashboards
+
+**Goal:** Deliver actionable insights to planning teams.  
+
+**Actions:**
+- KPI Cards:
+  - Total unrestricted stock by plant  
+  - Daily delivery count  
+  - Materials exceeding threshold weight  
+- Trends & Analysis:
+  - Stock trends over time  
+  - Delivery volume heatmap per plant  
+- Interactive Filters:
+  - Plant, storage location, material category, date range  
+
+**Tools / Techniques:**  
+- Power BI or Tableau for rich visualizations  
+- Streamlit for live Python-based dashboards  
+- Conditional formatting and drill-throughs for user exploration
+
 
 ### 💡 Future Enhancements
 
